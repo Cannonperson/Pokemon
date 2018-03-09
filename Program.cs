@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace Pokemon
 {
@@ -10,9 +11,25 @@ namespace Pokemon
     {
         static void Main(string[] args)
         {
+            Regex numbers = new Regex("[0-9]");
             List<Pokemon> roster = new List<Pokemon>();
 
-            // INITIALIZE YOUR THREE POKEMONS HERE
+
+            List<Move> pokemonMoves = new List<Move>();
+            pokemonMoves.Add(new Move("Ember"));
+            pokemonMoves.Add(new Move("Fire Blast"));
+            roster.Add(new Pokemon("Charmander", 3, 52, 43, 39, Elements.Fire, pokemonMoves));
+
+            pokemonMoves = new List<Move>();
+            pokemonMoves.Add(new Move("Bubble"));
+            pokemonMoves.Add(new Move("Bite"));
+            roster.Add(new Pokemon("Squirtle", 2, 48, 65, 44, Elements.Water, pokemonMoves));
+
+            pokemonMoves = new List<Move>();
+            pokemonMoves.Add(new Move("Cut"));
+            pokemonMoves.Add(new Move("Mega Drain"));
+            pokemonMoves.Add(new Move("Razor Leaf"));
+            roster.Add(new Pokemon("Bulbasaur", 3, 49, 49, 45, Elements.Grass, pokemonMoves));
 
             Console.WriteLine("Welcome to the world of Pokemon!\nThe available commands are list/fight/heal/quit");
 
@@ -22,52 +39,97 @@ namespace Pokemon
                 switch (Console.ReadLine())
                 {
                     case "list":
-                        // PRINT THE POKEMONS IN THE ROSTER HERE
+                        foreach (Pokemon pokemon in roster)
+                            Console.Write(pokemon.Name + " ");
+                        Console.WriteLine();
                         break;
 
                     case "fight":
-                        //PRINT INSTRUCTIONS AND POSSIBLE POKEMONS (SEE SLIDES FOR EXAMPLE OF EXECUTION)
-                        Console.Write("Choose who should fight(");
+                        Console.WriteLine("Select two pokemon by writing each their names seperated by a space!");
+                        Console.Write("Choose who you'll fight with(");
+                        foreach (Pokemon pokemon in roster)
+                            Console.Write(pokemon.Name + " ");
+                        Console.Write(")\n");
 
                         //READ INPUT, REMEMBER IT SHOULD BE TWO POKEMON NAMES
-                        string input = Console.ReadLine();
-                        //BE SURE TO CHECK THE POKEMON NAMES THE USER WROTE ARE VALID (IN THE ROSTER) AND IF THEY ARE IN FACT 2!
+                        Regex pokeNames = new Regex("(charmander|squirtle|bulbasaur) (charmander|squirtle|bulbasaur)");
+                        string input = Console.ReadLine().ToLower();
+
                         Pokemon player = null;
                         Pokemon enemy = null;
+
+                        if(pokeNames.IsMatch(input))
+                        {
+                            switch (input.Substring(0,input.IndexOf(" ")))
+                            {
+                                case "charmander":
+                                    player = roster[0];
+                                    break;
+                                case "squirtle":
+                                    player = roster[1];
+                                    break;
+                                case "bulbasaur":
+                                    player = roster[2];
+                                    break;
+                            }
+                            switch (input.Substring(input.IndexOf(" ") + 1))
+                            {
+                                case "charmander":
+                                    enemy = roster[0];
+                                    break;
+                                case "squirtle":
+                                    enemy = roster[1];
+                                    break;
+                                case "bulbasaur":
+                                    enemy = roster[2];
+                                    break;
+                            }
+                        }
 
                         //if everything is fine and we have 2 pokemons let's make them fight
                         if (player != null && enemy != null && player != enemy)
                         {
                             Console.WriteLine("A wild " + enemy.Name + " appears!");
                             Console.Write(player.Name + " I choose you! ");
-
-                            //BEGIN FIGHT LOOP
+                            
                             while (player.Hp > 0 && enemy.Hp > 0)
                             {
-                                //PRINT POSSIBLE MOVES
-                                Console.Write("What move should we use? (");
+                                Console.Write("What move should we use? Choose one by its number\n(");
+                                foreach (Move move in player.Moves)
+                                    Console.Write(move.Name + "[" + player.Moves.IndexOf(move) + "]");
+                                Console.Write(")\n");
 
-                                //GET USER ANSWER, BE SURE TO CHECK IF IT'S A VALID MOVE, OTHERWISE ASK AGAIN
-                                int move = -1;
+                                Move playerMove = null;
+                                while (playerMove == null)
+                                {
+                                    input = Console.ReadLine();
+                                    if (numbers.IsMatch(input)) {
+                                        int intInput = int.Parse(input);
+                                        if (intInput <= 0 || intInput < player.Moves.Count)
+                                            playerMove = player.Moves[intInput];
+                                        if (playerMove == null)
+                                            Console.WriteLine("Invalid move! Choose another!");
+                                    }
+                                }
 
-                                //CALCULATE AND APPLY DAMAGE
-                                int damage = -1;
+                                int damage = player.Attack(enemy);
+                                enemy.ApplyDamage(damage);
 
                                 //print the move and damage
-                                Console.WriteLine(player.Name + " uses " + player.Moves[move].Name + ". " + enemy.Name + " loses " + damage + " HP");
+                                Console.WriteLine(player.Name + " uses " + player.Moves[int.Parse(input)].Name + ". " + enemy.Name + " loses " + damage + " HP");
 
                                 //if the enemy is not dead yet, it attacks
                                 if (enemy.Hp > 0)
                                 {
-                                    //CHOOSE A RANDOM MOVE BETWEEN THE ENEMY MOVES AND USE IT TO ATTACK THE PLAYER
                                     Random rand = new Random();
                                     /*the C# random is a bit different than the Unity random
                                      * you can ask for a number between [0,X) (X not included) by writing
                                      * rand.Next(X) 
                                      * where X is a number 
                                      */
-                                    int enemyMove = -1;
-                                    int enemyDamage = -1;
+                                    int enemyMove = rand.Next(0,enemy.Moves.Count);
+                                    int enemyDamage = enemy.Attack(player);
+                                    player.ApplyDamage(enemyDamage);
 
                                     //print the move and damage
                                     Console.WriteLine(enemy.Name + " uses " + enemy.Moves[enemyMove].Name + ". " + player.Name + " loses " + enemyDamage + " HP");
@@ -91,7 +153,8 @@ namespace Pokemon
                         break;
 
                     case "heal":
-                        //RESTORE ALL POKEMONS IN THE ROSTER
+                        foreach (Pokemon pokemon in roster)
+                            pokemon.Restore();
 
                         Console.WriteLine("All pokemons have been healed");
                         break;
